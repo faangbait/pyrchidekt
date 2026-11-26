@@ -7,7 +7,7 @@ from .cards import ArchidektCard
 from .categories import Category
 from .formats import Format
 from .owner import Owner
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, List, Optional
 from warnings import warn
@@ -212,3 +212,69 @@ class Deck:
                 deck_category.cards.append(card)
 
         return retval
+
+
+@dataclass
+class DeckSummary:
+    """A deck as it appears in a listing (no cards)
+
+    Attributes:
+        id: `int` The deck id
+
+        name: `str` Name of the deck
+
+        size: `int` Number of cards in the deck
+
+        created_at: `Optional[datetime]` When the deck was created
+
+        updated_at: `datetime` When the deck was last updated
+
+        format: `Optional[Format]` The deck format, `None` if unknown to `Format`
+
+        private: `bool` Private flag
+
+        unlisted: `bool` Unlisted flag
+
+        theorycrafted: `bool` Theorycrafted flag
+
+        parent_folder_id: `Optional[int]` The folder holding the deck
+
+        description: `Optional[str]` Description of the deck
+
+        tags: `List[Any]` Tags on the deck
+    """
+    id: int
+    name: str
+    size: int
+    updated_at: datetime
+    created_at: Optional[datetime] = None
+    format: Optional[Format] = None
+    private: bool = False
+    unlisted: bool = False
+    theorycrafted: bool = False
+    parent_folder_id: Optional[int] = None
+    description: Optional[str] = None
+    tags: List[Any] = field(default_factory=list)
+
+    @staticmethod
+    def fromJson(data: dict) -> DeckSummary:
+        """Returns a `DeckSummary` from an entry of Archidekt's deck listing endpoints"""
+        try:
+            _format = Format(data["deckFormat"])
+        except ValueError:
+            _format = None
+        created = data.get("createdAt")
+        return DeckSummary(
+            id=data["id"],
+            name=data["name"],
+            size=data.get("size", 0),
+            created_at=datetime.fromisoformat(created) if created else None,
+            updated_at=datetime.fromisoformat(data["updatedAt"]),
+            format=_format,
+            private=data.get("private", False),
+            unlisted=data.get("unlisted", False),
+            theorycrafted=data.get("theorycrafted", False),
+            parent_folder_id=data.get("parentFolderId"),
+            description=data.get("description"),
+            tags=data.get("tags") or [],
+        )
